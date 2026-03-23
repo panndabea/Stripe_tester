@@ -1,6 +1,9 @@
-  (async () => {
-    // 1. Fetch the publishable key from the server (never hardcoded here)
-    const { publishableKey } = await fetch('/config').then(r => r.json());
+(async () => {
+  const apiBase = window.STRIPE_API_BASE || '';
+  const apiUrl = (path) => `${apiBase}${path}`;
+
+  // 1. Fetch the publishable key from the backend (never hardcoded here)
+  const { publishableKey } = await fetch(apiUrl('/config')).then(r => r.json());
     const stripe = Stripe(publishableKey); // eslint-disable-line no-undef
 
     let elements;
@@ -25,7 +28,7 @@
     }
 
     async function initializeElements(amountCents) {
-      const { clientSecret, error } = await fetch('/create-payment-intent', {
+    const { clientSecret, error } = await fetch(apiUrl('/create-payment-intent'), {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ amount: amountCents }),
