@@ -13,6 +13,21 @@
   const btnText    = document.getElementById('btn-text');
   const spinner    = document.getElementById('spinner');
 
+  async function fetchJson(path, options) {
+    const response = await fetch(apiUrl(path), options);
+    let payload = {};
+    try {
+      payload = await response.json();
+    } catch (_) {
+      // keep empty payload for non-JSON failures
+    }
+
+    if (!response.ok) {
+      throw new Error(payload.error || `Request failed: ${response.status}`);
+    }
+    return payload;
+  }
+
     function showMessage(text, type) {
       msgEl.textContent = text;
       msgEl.className   = type; // 'error' or 'success'
@@ -31,25 +46,45 @@
     }
 
     // 1. Fetch the publishable key from the backend (never hardcoded here)
-    const { publishableKey } = await fetch(apiUrl('/config')).then(r => r.json());
-    const stripe = Stripe(publishableKey); // eslint-disable-line no-undef
+    let stripe;
+    try {
+      const { publishableKey } = await fetchJson('/config');
+      if (typeof publishableKey !== 'string' || !publishableKey.trim()) {
+        throw new Error('Backend /config did not return a valid publishableKey.');
+      }
+      stripe = Stripe(publishableKey.trim()); // eslint-disable-line no-undef
+    } catch (error) {
+      showMessage(`Unable to initialize payment form. ${error.message}`, 'error');
+      submitBtn.disabled = true;
+      return;
+    }
 
     async function initializeElements(amountCents) {
-    const { clientSecret, error } = await fetch(apiUrl('/create-payment-intent'), {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ amount: amountCents }),
-      }).then(r => r.json());
+      try {
+        const { clientSecret, error } = await fetchJson('/create-payment-intent', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ amount: amountCents }),
+        });
 
-      if (error) {
-        showMessage(error, 'error');
+        if (error) {
+          showMessage(error, 'error');
+          return false;
+        }
+
+        if (typeof clientSecret !== 'string' || !clientSecret.trim()) {
+          showMessage('Backend did not return a valid clientSecret.', 'error');
+          return false;
+        }
+
+        elements = stripe.elements({ clientSecret: clientSecret.trim() });
+        const paymentEl = elements.create('payment');
+        paymentEl.mount('#payment-element');
+        return true;
+      } catch (error) {
+        showMessage(error.message, 'error');
         return false;
       }
-
-      elements = stripe.elements({ clientSecret });
-      const paymentEl = elements.create('payment');
-      paymentEl.mount('#payment-element');
-      return true;
     }
 
     // Build (or rebuild) the payment element when the amount changes
