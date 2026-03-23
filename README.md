@@ -1,71 +1,61 @@
-# Stripe Minimal App
+# Stripe Worker + Frontend split
 
-A super minimal Stripe payment app built with plain HTML, CSS, and JavaScript on the frontend and a Cloudflare Worker for Stripe server-side calls.
+This repository is now prepared to be split into two deployments:
 
-## Setup
+1. **Frontend repository** (deploy to GitHub Pages)
+2. **Worker repository** (deploy to Cloudflare Workers)
 
-### 1. Install dependencies
+## What changed
+
+- `src/worker.js` now serves API endpoints only (`/config`, `/create-payment-intent`).
+- `wrangler.toml` no longer binds static assets.
+- A copy of the frontend is provided in `frontend/` for your GitHub Pages repo.
+
+## Worker repository (this repository)
+
+### Setup
 
 ```bash
 npm install
-```
-
-### 2. Add your Stripe keys for local Worker development
-
-```bash
 cp .env.example .dev.vars
 ```
 
-Edit `.dev.vars` and paste your keys from the [Stripe Dashboard](https://dashboard.stripe.com/apikeys).
+Set keys in `.dev.vars`:
 
 ```
 STRIPE_SECRET_KEY=sk_test_...
 STRIPE_PUBLISHABLE_KEY=pk_test_...
 ```
 
-### 3. Run locally
+### Run locally
 
 ```bash
 npm start
 ```
 
-Open the local URL shown by Wrangler in your browser.
-
-### 4. Deploy to Cloudflare
+### Deploy to Cloudflare
 
 ```bash
 npm run deploy
-```
-
-Add production secrets before deploying:
-
-```bash
 npx wrangler secret put STRIPE_SECRET_KEY
 npx wrangler secret put STRIPE_PUBLISHABLE_KEY
 ```
 
-## Security highlights
+## Frontend repository (GitHub Pages)
 
-| Concern | How it's handled |
-|---|---|
-| Secret key exposure | Kept server-side in Cloudflare Worker environment; never sent to the browser |
-| Runtime isolation | Stripe secret operations run in Worker code, not in frontend JS |
-| CORS | Worker allows browser requests for payment setup endpoints |
-| Input validation | Amount validated as integer cents (50–99,999,999) |
-| Stripe.js | Loaded from Stripe's own CDN as required by Stripe |
-| PCI scope | Card data goes directly to Stripe's iframe — never touches your Worker |
-
-## Project structure
+Use files from:
 
 ```
-.
-├── public/
-│   ├── index.html   # Payment form
-│   ├── style.css    # Minimal styles
-│   └── payment.js   # Frontend Stripe logic
-├── src/worker.js    # Cloudflare Worker (PaymentIntent creation, config endpoint)
-├── wrangler.toml    # Worker configuration + static asset binding
-├── package.json
-├── .env.example     # Environment variable template for Worker secrets
-└── .gitignore       # Excludes env and dependencies
+frontend/
+├── index.html
+├── payment.js
+└── style.css
 ```
+
+In `frontend/index.html`, set:
+
+```html
+window.STRIPE_API_BASE = 'https://YOUR-WORKER-DOMAIN.workers.dev';
+```
+
+Then deploy that folder as your GitHub Pages site.
