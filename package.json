@@ -1,16 +1,9 @@
 {
-  "name": "stripe-minimal-app",
+  "name": "stripe-frontend",
   "version": "1.0.0",
-  "description": "A super minimal Stripe payment app with static frontend and Cloudflare Worker backend",
-  "main": "src/worker.js",
+  "description": "Minimal Stripe frontend (HTML/CSS/JavaScript)",
+  "private": true,
   "scripts": {
-    "start": "wrangler dev",
-    "deploy": "wrangler deploy"
-  },
-  "dependencies": {
-    "stripe": "^16.0.0"
-  },
-  "devDependencies": {
-    "wrangler": "^4.6.0"
+    "start": "python3 -m http.server 8080 --directory frontend"
   }
 }

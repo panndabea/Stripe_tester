@@ -1,20 +1,17 @@
 (async () => {
-  const apiBase = window.STRIPE_API_BASE || '';
+  const placeholderApiBase = 'https://YOUR-WORKER-DOMAIN.workers.dev';
+  const apiBase = window.STRIPE_API_BASE || placeholderApiBase;
   const apiUrl = (path) => `${apiBase}${path}`;
 
-  // 1. Fetch the publishable key from the backend (never hardcoded here)
-  const { publishableKey } = await fetch(apiUrl('/config')).then(r => r.json());
-    const stripe = Stripe(publishableKey); // eslint-disable-line no-undef
+  let elements;
+  let currentAmount = null; // track the PaymentIntent amount in cents
 
-    let elements;
-    let currentAmount = null; // track the PaymentIntent amount in cents
-
-    const form       = document.getElementById('payment-form');
-    const amountInput = document.getElementById('amount');
-    const msgEl      = document.getElementById('payment-message');
-    const submitBtn  = document.getElementById('submit-btn');
-    const btnText    = document.getElementById('btn-text');
-    const spinner    = document.getElementById('spinner');
+  const form       = document.getElementById('payment-form');
+  const amountInput = document.getElementById('amount');
+  const msgEl      = document.getElementById('payment-message');
+  const submitBtn  = document.getElementById('submit-btn');
+  const btnText    = document.getElementById('btn-text');
+  const spinner    = document.getElementById('spinner');
 
     function showMessage(text, type) {
       msgEl.textContent = text;
@@ -26,6 +23,16 @@
       spinner.style.display  = loading ? 'block' : 'none';
       btnText.style.display  = loading ? 'none'  : 'inline';
     }
+
+    if (apiBase === placeholderApiBase) {
+      showMessage('Configure window.STRIPE_API_BASE in the <script> tag in index.html with your deployed worker URL.', 'error');
+      submitBtn.disabled = true;
+      return;
+    }
+
+    // 1. Fetch the publishable key from the backend (never hardcoded here)
+    const { publishableKey } = await fetch(apiUrl('/config')).then(r => r.json());
+    const stripe = Stripe(publishableKey); // eslint-disable-line no-undef
 
     async function initializeElements(amountCents) {
     const { clientSecret, error } = await fetch(apiUrl('/create-payment-intent'), {
