@@ -1,61 +1,29 @@
-# Stripe Worker + Frontend split
+# Stripe Frontend
 
-This repository is now prepared to be split into two deployments:
+This repository contains only the frontend (HTML, CSS, and JavaScript).
 
-1. **Frontend repository** (deploy to GitHub Pages)
-2. **Worker repository** (deploy to Cloudflare Workers)
+## Files
 
-## What changed
+- `frontend/index.html`
+- `frontend/style.css`
+- `frontend/payment.js`
 
-- `src/worker.js` now serves API endpoints only (`/config`, `/create-payment-intent`).
-- `wrangler.toml` no longer binds static assets.
-- A copy of the frontend is provided in `frontend/` for your GitHub Pages repo.
+## Connect to your worker
 
-## Worker repository (this repository)
+Set your worker base URL in `frontend/index.html`:
 
-### Setup
-
-```bash
-npm install
-cp .env.example .dev.vars
+```html
+<script>
+  window.STRIPE_API_BASE = 'https://YOUR-WORKER-DOMAIN.workers.dev';
+</script>
 ```
 
-Set keys in `.dev.vars`:
-
-```
-STRIPE_SECRET_KEY=sk_test_...
-STRIPE_PUBLISHABLE_KEY=pk_test_...
-```
-
-### Run locally
+## Run locally
 
 ```bash
 npm start
 ```
 
-### Deploy to Cloudflare
+`npm start` uses Python's built-in HTTP server (`python3`), so make sure Python 3 is installed.
 
-```bash
-npm run deploy
-npx wrangler secret put STRIPE_SECRET_KEY
-npx wrangler secret put STRIPE_PUBLISHABLE_KEY
-```
-
-## Frontend repository (GitHub Pages)
-
-Use files from:
-
-```
-frontend/
-├── index.html
-├── payment.js
-└── style.css
-```
-
-In `frontend/index.html`, set:
-
-```html
-window.STRIPE_API_BASE = 'https://YOUR-WORKER-DOMAIN.workers.dev';
-```
-
-Then deploy that folder as your GitHub Pages site.
+Then open `http://localhost:8080`.
