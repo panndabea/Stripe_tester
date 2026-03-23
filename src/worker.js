@@ -67,6 +67,6 @@ export default {
       }
     }
 
-    return env.ASSETS.fetch(request);
+    return jsonResponse({ error: 'Not found' }, 404);
   },
 };
