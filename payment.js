@@ -2,9 +2,14 @@
   const placeholderApiBase = 'https://YOUR-WORKER-DOMAIN.workers.dev';
   const apiBase = window.STRIPE_API_BASE || placeholderApiBase;
   const apiUrl = (path) => `${apiBase}${path}`;
+  const initMessagePrefix = 'Unable to initialize payment form.';
+  const keyMissingMessage = 'STRIPE_PUBLISHABLE_KEY is not configured';
+  const apiBaseMissingMessage = 'STRIPE_API_BASE is not configured';
+  const unknownInitMessage = 'Unable to determine initialization failure reason.';
 
   let elements;
   let currentAmount = null; // track the PaymentIntent amount in cents
+  let lastInitErrorReason = unknownInitMessage;
 
   const form       = document.getElementById('payment-form');
   const amountInput = document.getElementById('amount');
@@ -39,9 +44,13 @@
       btnText.style.display  = loading ? 'none'  : 'inline';
     }
 
+    function showInitError(reason) {
+      lastInitErrorReason = reason || unknownInitMessage;
+      showMessage(`${initMessagePrefix}\n${lastInitErrorReason}`, 'error');
+    }
+
     if (apiBase === placeholderApiBase) {
-      showMessage('Configure window.STRIPE_API_BASE in the <script> tag in index.html with your deployed worker URL.', 'error');
-      submitBtn.disabled = true;
+      showInitError(apiBaseMissingMessage);
       return;
     }
 
@@ -50,12 +59,14 @@
     try {
       const { publishableKey } = await fetchJson('/config');
       if (typeof publishableKey !== 'string' || !publishableKey.trim()) {
-        throw new Error('Backend /config did not return a valid publishableKey.');
+        throw new Error(keyMissingMessage);
       }
       stripe = Stripe(publishableKey.trim()); // eslint-disable-line no-undef
     } catch (error) {
-      showMessage(`Unable to initialize payment form. ${error.message}`, 'error');
-      submitBtn.disabled = true;
+      const reason = typeof error?.message === 'string' && error.message.trim()
+        ? error.message.trim()
+        : unknownInitMessage;
+      showInitError(reason);
       return;
     }
 
@@ -111,7 +122,10 @@
     // Handle form submission
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      if (!elements) return;
+      if (!elements) {
+        showInitError(lastInitErrorReason);
+        return;
+      }
       setLoading(true);
 
       const { error } = await stripe.confirmPayment({
